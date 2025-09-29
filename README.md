@@ -5,9 +5,6 @@ A C++20 header-only library for type-safe environment variable access, with or w
 > **Note:** This library requires a C++20-compliant compiler and standard library.
 
 ## Features
-- Compile-time environment variable name via `FixedString`
-- Type-safe conversion with exception handling
-- Optional default value fallback
 - Doxygen documentation
 - MIT License
 
@@ -15,28 +12,48 @@ A C++20 header-only library for type-safe environment variable access, with or w
 
 ### 1. With Default Value
 ```cpp
-#include "library.h"
-constexpr FixedString<5> envName("PATH");
-constexpr DefaultValueType<int> defaultVal(42);
-int value = EnvHelperWithDefault<envName, defaultVal>::get();
+#include "EnvHelper.hpp"
+auto url = EnvHelperWithDefault<"DATABASE_URL", "localhost">::get();
+auto port = EnvHelperWithDefault<"PORT", 42>::get();
 ```
 If the environment variable `PATH` is not set or conversion fails, `value` will be `42`.
 
 ### 2. Without Default Value
 ```cpp
-#include "library.h"
-constexpr FixedString<5> envName("PATH");
-int value = EnvHelper<envName, int>::get();
+#include "EnvHelper.hpp"
+auto url = EnvHelper<"DATABASE_URL", "localhost">::get();
+auto port = EnvHelper<"PORT", 42>::get();
 ```
 If the environment variable `PATH` is not set or conversion fails, an exception will be thrown.
 
-### 3. String Example
+### 3. Using with Type Alias (Recommended: config.h)
+For better maintainability, it is recommended to put all your environment variable type aliases in `config.h`:
+
 ```cpp
-#include "library.h"
-constexpr FixedString<5> envName("HOME");
-constexpr DefaultValueType<char, 6> defaultStr("/tmp/");
-auto home = EnvHelperWithDefault<envName, defaultStr>::get(); // returns std::string_view
+// config.h
+#include "EnvHelper.hpp"
+using DBUrl = EnvHelperWithDefault<"DATABASE_URL", "/tmp/db.sqlite">;
+using Port = EnvHelperWithDefault<"PORT", 8080>;
 ```
+
+Then, in other files, simply include `config.h` and use the aliases:
+
+```cpp
+#include "config.h"
+auto url = DBUrl::get();
+auto port = Port::get();
+```
+This approach keeps your code cleaner and makes it easier to manage environment variable access across your project.
+
+### 4. Disabling Messages
+To disable all automatic output messages, set the third template parameter to `false`:
+
+```cpp
+#include "EnvHelper.hpp"
+auto url = EnvHelperWithDefault<"DATABASE_URL", "localhost", false>::get();
+auto port = EnvHelper<"PORT", 42, false>::get();
+```
+No messages will be printed to stdout or stderr when environment variables are accessed or converted.
 
 ## Supported Types
 - int, long, long long
