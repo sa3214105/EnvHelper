@@ -1,7 +1,7 @@
 // MIT License © 2025 sa3214105
 // See LICENSE file in the project root for full license text.
 /**
- * @file library.h
+ * @file EnvHelper.hpp
  * @brief Environment variable helper classes with and without default value support.
  *
  * Provides FixedString, DefaultValueType, EnvHelperWithDefault, and EnvHelper for type-safe environment variable access.
@@ -17,7 +17,7 @@
  * @tparam N Size for char arrays (default 0)
  */
 template<typename T, size_t N = 0>
-    requires std::same_as<char,T> || std::is_floating_point_v<T> || std::is_integral_v<T>
+    requires std::same_as<char, T> || std::is_floating_point_v<T> || std::is_integral_v<T>
 struct DefaultValueType {
     using SaveType = std::conditional_t<std::is_same_v<char, T> && N != 0, char [N], T>;
     using ExportType = std::conditional_t<std::is_same_v<char, T> && N != 0, std::string_view, T>;
@@ -78,6 +78,36 @@ struct FixedString {
 };
 
 /**
+ * @brief Convert environment variable string to target type.
+ * @tparam Type Target type
+ * @param env Environment variable string
+ * @return Converted value
+ * @throws std::exception on conversion error
+ */
+template<typename Type>
+static Type convert_env_value(const char *env) {
+    if constexpr (std::is_same_v<Type, int>) {
+        return std::stoi(env);
+    } else if constexpr (std::is_same_v<Type, long>) {
+        return std::stol(env);
+    } else if constexpr (std::is_same_v<Type, long long>) {
+        return std::stoll(env);
+    } else if constexpr (std::is_same_v<Type, float>) {
+        return std::stof(env);
+    } else if constexpr (std::is_same_v<Type, double>) {
+        return std::stod(env);
+    } else if constexpr (std::is_same_v<Type, long double>) {
+        return std::stold(env);
+    } else if constexpr (std::is_same_v<Type, char>) {
+        return env[0];
+    } else if constexpr (std::is_same_v<Type, std::string_view>) {
+        return std::string_view(env);
+    } else {
+        static_assert(sizeof(Type) == 0, "Unsupported type for convert_env_value");
+    }
+}
+
+/**
  * @brief Environment variable helper with default value fallback.
  * @tparam EnvName FixedString environment variable name
  * @tparam DefaultValue DefaultValueType default value
@@ -104,25 +134,10 @@ public:
             }
             using exportType = decltype(DefaultValue)::ExportType;
             try {
-                if constexpr (std::is_same_v<exportType, int>) {
-                    return std::stoi(env);
-                } else if constexpr (std::is_same_v<exportType, long>) {
-                    return std::stol(env);
-                } else if constexpr (std::is_same_v<exportType, long long>) {
-                    return std::stoll(env);
-                } else if constexpr (std::is_same_v<exportType, float>) {
-                    return std::stof(env);
-                } else if constexpr (std::is_same_v<exportType, double>) {
-                    return std::stod(env);
-                } else if constexpr (std::is_same_v<exportType, long double>) {
-                    return std::stold(env);
-                } else if constexpr (std::is_same_v<exportType, char>) {
-                    return env[0];
-                } else {
-                    return std::string_view(env);
-                }
-            } catch (const std::exception& e) {
-                std::cerr << "[EnvHelper] " << EnvName.value << " conversion failed: (env='" << env << "'), using default value: " << DefaultValue.get() << std::endl;
+                return convert_env_value<exportType>(env);
+            } catch (const std::exception &e) {
+                std::cerr << "[EnvHelper] " << EnvName.value << " conversion failed: (env='" << env <<
+                        "'), using default value: " << DefaultValue.get() << std::endl;
                 std::cerr << e.what() << std::endl;
                 return DefaultValue.get();
             }
@@ -155,27 +170,10 @@ public:
             std::cout << EnvName.value << " is set to: " << env << "\n";
         }
         try {
-            if constexpr (std::is_same_v<Type, int>) {
-                return std::stoi(env);
-            } else if constexpr (std::is_same_v<Type, long>) {
-                return std::stol(env);
-            } else if constexpr (std::is_same_v<Type, long long>) {
-                return std::stoll(env);
-            } else if constexpr (std::is_same_v<Type, float>) {
-                return std::stof(env);
-            } else if constexpr (std::is_same_v<Type, double>) {
-                return std::stod(env);
-            } else if constexpr (std::is_same_v<Type, long double>) {
-                return std::stold(env);
-            } else if constexpr (std::is_same_v<Type, char>) {
-                return env[0];
-            } else if constexpr (std::is_same_v<Type, std::string_view>) {
-                return std::string_view(env);
-            } else {
-                static_assert(sizeof(Type) == 0, "Unsupported type for EnvHelperNoDefault");
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "[EnvHelperNoDefault] " << EnvName.value << " conversion failed: (env='" << env << "')" << std::endl;
+            return convert_env_value<Type>(env);
+        } catch (const std::exception &e) {
+            std::cerr << "[EnvHelperNoDefault] " << EnvName.value << " conversion failed: (env='" << env << "')" <<
+                    std::endl;
             std::cerr << e.what() << std::endl;
             throw;
         }
