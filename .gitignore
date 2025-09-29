@@ -1,0 +1,22 @@
+# Build and IDE files
+cmake-build-debug/
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+EnvHelper
+EnvHelperTest
+*.o
+*.obj
+*.exe
+*.log
+Testing/
+
+# CLion/JetBrains IDE
+.idea/
+*.iml
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+
